@@ -34,6 +34,10 @@ let currentImageQuality = 'medium'; // Store current image quality for manual sc
 const isLinux = process.platform === 'linux';
 const isMacOS = process.platform === 'darwin';
 
+// Manual audio detection control
+let isAudioDetectionEnabled = false; // By default, audio is NOT sent (manual mode)
+let audioDetectionStatusCallback = null; // Callback to update UI
+
 // Token tracking system for rate limiting
 let tokenTracker = {
     tokens: [], // Array of {timestamp, count, type} objects
@@ -374,10 +378,13 @@ function setupLinuxMicProcessing(micStream) {
             const pcmData16 = convertFloat32ToInt16(chunk);
             const base64Data = arrayBufferToBase64(pcmData16.buffer);
 
-            await ipcRenderer.invoke('send-mic-audio-content', {
-                data: base64Data,
-                mimeType: 'audio/pcm;rate=24000',
-            });
+            // Only send audio if manual detection is enabled
+            if (isAudioDetectionEnabled) {
+                await ipcRenderer.invoke('send-mic-audio-content', {
+                    data: base64Data,
+                    mimeType: 'audio/pcm;rate=24000',
+                });
+            }
         }
     };
 
@@ -407,10 +414,13 @@ function setupLinuxSystemAudioProcessing() {
             const pcmData16 = convertFloat32ToInt16(chunk);
             const base64Data = arrayBufferToBase64(pcmData16.buffer);
 
-            await ipcRenderer.invoke('send-audio-content', {
-                data: base64Data,
-                mimeType: 'audio/pcm;rate=24000',
-            });
+            // Only send audio if manual detection is enabled
+            if (isAudioDetectionEnabled) {
+                await ipcRenderer.invoke('send-audio-content', {
+                    data: base64Data,
+                    mimeType: 'audio/pcm;rate=24000',
+                });
+            }
         }
     };
 
@@ -437,10 +447,13 @@ function setupWindowsLoopbackProcessing() {
             const pcmData16 = convertFloat32ToInt16(chunk);
             const base64Data = arrayBufferToBase64(pcmData16.buffer);
 
-            await ipcRenderer.invoke('send-audio-content', {
-                data: base64Data,
-                mimeType: 'audio/pcm;rate=24000',
-            });
+            // Only send audio if manual detection is enabled
+            if (isAudioDetectionEnabled) {
+                await ipcRenderer.invoke('send-audio-content', {
+                    data: base64Data,
+                    mimeType: 'audio/pcm;rate=24000',
+                });
+            }
         }
     };
 
@@ -629,6 +642,31 @@ async function sendTextMessage(text) {
     }
 }
 
+// Toggle audio detection manually
+async function toggleAudioDetection() {
+    isAudioDetectionEnabled = !isAudioDetectionEnabled;
+    console.log('Audio detection toggled to:', isAudioDetectionEnabled ? 'ENABLED (Recording)' : 'DISABLED (Not recording)');
+
+    // Notify main process (for macOS audio)
+    try {
+        await ipcRenderer.invoke('toggle-audio-detection', isAudioDetectionEnabled);
+    } catch (error) {
+        console.error('Error toggling audio detection in main process:', error);
+    }
+
+    // Call UI update callback if registered
+    if (audioDetectionStatusCallback) {
+        audioDetectionStatusCallback(isAudioDetectionEnabled);
+    }
+
+    return isAudioDetectionEnabled;
+}
+
+// Register callback for audio detection status updates
+function onAudioDetectionStatusChange(callback) {
+    audioDetectionStatusCallback = callback;
+}
+
 // Conversation storage functions using IndexedDB
 let conversationDB = null;
 
@@ -768,6 +806,11 @@ const cheddar = {
     stopCapture,
     sendTextMessage,
     handleShortcut,
+
+    // Audio detection control
+    toggleAudioDetection,
+    onAudioDetectionStatusChange,
+    getAudioDetectionStatus: () => isAudioDetectionEnabled,
 
     // Conversation history functions
     getAllConversationSessions,

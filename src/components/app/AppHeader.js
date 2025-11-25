@@ -86,6 +86,51 @@ export class AppHeader extends LitElement {
             font-size: 12px;
             margin: 0px;
         }
+
+        .audio-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .audio-indicator.recording {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .audio-indicator.idle {
+            background: rgba(107, 114, 128, 0.15);
+            color: #6b7280;
+        }
+
+        .audio-indicator .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .audio-indicator.recording .status-dot {
+            background: #ef4444;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        .audio-indicator.idle .status-dot {
+            background: #6b7280;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
     `;
 
     static properties = {
@@ -101,6 +146,7 @@ export class AppHeader extends LitElement {
         isClickThrough: { type: Boolean, reflect: true },
         advancedMode: { type: Boolean },
         onAdvancedClick: { type: Function },
+        audioDetectionEnabled: { type: Boolean },
     };
 
     constructor() {
@@ -117,6 +163,7 @@ export class AppHeader extends LitElement {
         this.isClickThrough = false;
         this.advancedMode = false;
         this.onAdvancedClick = () => {};
+        this.audioDetectionEnabled = false;
         this._timerInterval = null;
     }
 
@@ -207,6 +254,10 @@ export class AppHeader extends LitElement {
                 <div class="header-actions">
                     ${this.currentView === 'assistant'
                         ? html`
+                              <div class="audio-indicator ${this.audioDetectionEnabled ? 'recording' : 'idle'}">
+                                  <div class="status-dot"></div>
+                                  <span>${this.audioDetectionEnabled ? 'Recording' : 'Idle'}</span>
+                              </div>
                               <span>${elapsedTime}</span>
                               <span>${this.statusText}</span>
                           `

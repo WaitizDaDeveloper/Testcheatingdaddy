@@ -148,6 +148,7 @@ function getDefaultKeybinds() {
         moveRight: isMac ? 'Alt+Right' : 'Ctrl+Right',
         toggleVisibility: isMac ? 'Cmd+\\' : 'Ctrl+\\',
         toggleClickThrough: isMac ? 'Cmd+M' : 'Ctrl+M',
+        toggleAudioDetection: isMac ? 'Cmd+A' : 'Ctrl+A',
         nextStep: isMac ? 'Cmd+Enter' : 'Ctrl+Enter',
         previousResponse: isMac ? 'Cmd+[' : 'Ctrl+[',
         nextResponse: isMac ? 'Cmd+]' : 'Ctrl+]',
@@ -237,6 +238,23 @@ function updateGlobalShortcuts(keybinds, mainWindow, sendToRenderer, geminiSessi
             console.log(`Registered toggleClickThrough: ${keybinds.toggleClickThrough}`);
         } catch (error) {
             console.error(`Failed to register toggleClickThrough (${keybinds.toggleClickThrough}):`, error);
+        }
+    }
+
+    // Register toggle audio detection shortcut
+    if (keybinds.toggleAudioDetection) {
+        try {
+            globalShortcut.register(keybinds.toggleAudioDetection, async () => {
+                console.log('Audio detection toggle shortcut triggered');
+                try {
+                    await mainWindow.webContents.executeJavaScript('cheddar.toggleAudioDetection()');
+                } catch (error) {
+                    console.error('Error toggling audio detection:', error);
+                }
+            });
+            console.log(`Registered toggleAudioDetection: ${keybinds.toggleAudioDetection}`);
+        } catch (error) {
+            console.error(`Failed to register toggleAudioDetection (${keybinds.toggleAudioDetection}):`, error);
         }
     }
 

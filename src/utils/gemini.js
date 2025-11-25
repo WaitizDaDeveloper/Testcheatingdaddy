@@ -27,6 +27,9 @@ module.exports.formatSpeakerResults = formatSpeakerResults;
 let systemAudioProc = null;
 let messageBuffer = '';
 
+// Manual audio detection control (for macOS)
+let isAudioDetectionEnabled = false;
+
 // Reconnection tracking variables
 let reconnectionAttempts = 0;
 let maxReconnectionAttempts = 3;
@@ -506,6 +509,9 @@ function stopMacOSAudioCapture() {
 async function sendAudioToGemini(base64Data, geminiSessionRef) {
     if (!geminiSessionRef.current) return;
 
+    // Only send audio if manual detection is enabled
+    if (!isAudioDetectionEnabled) return;
+
     try {
         process.stdout.write('.');
         await geminiSessionRef.current.sendRealtimeInput({
@@ -681,6 +687,17 @@ function setupGeminiIpcHandlers(geminiSessionRef) {
             return { success: true };
         } catch (error) {
             console.error('Error updating Google Search setting:', error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('toggle-audio-detection', async (event, enabled) => {
+        try {
+            isAudioDetectionEnabled = enabled;
+            console.log('Audio detection manually toggled to:', enabled);
+            return { success: true, enabled: isAudioDetectionEnabled };
+        } catch (error) {
+            console.error('Error toggling audio detection:', error);
             return { success: false, error: error.message };
         }
     });

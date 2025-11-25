@@ -110,6 +110,7 @@ export class CheatingDaddyApp extends LitElement {
         selectedImageQuality: { type: String },
         layoutMode: { type: String },
         advancedMode: { type: Boolean },
+        audioDetectionEnabled: { type: Boolean },
         _viewInstances: { type: Object, state: true },
         _isClickThrough: { state: true },
         _awaitingNewResponse: { state: true },
@@ -136,6 +137,7 @@ export class CheatingDaddyApp extends LitElement {
         this._awaitingNewResponse = false;
         this._currentResponseIsComplete = true;
         this.shouldAnimateResponse = false;
+        this.audioDetectionEnabled = false;
 
         // Apply layout mode to document root
         this.updateLayoutMode();
@@ -155,6 +157,13 @@ export class CheatingDaddyApp extends LitElement {
             });
             ipcRenderer.on('click-through-toggled', (_, isEnabled) => {
                 this._isClickThrough = isEnabled;
+            });
+        }
+
+        // Register audio detection status callback
+        if (window.cheddar && window.cheddar.onAudioDetectionStatusChange) {
+            window.cheddar.onAudioDetectionStatusChange((enabled) => {
+                this.audioDetectionEnabled = enabled;
             });
         }
     }
@@ -473,6 +482,7 @@ export class CheatingDaddyApp extends LitElement {
                         .statusText=${this.statusText}
                         .startTime=${this.startTime}
                         .advancedMode=${this.advancedMode}
+                        .audioDetectionEnabled=${this.audioDetectionEnabled}
                         .onCustomizeClick=${() => this.handleCustomizeClick()}
                         .onHelpClick=${() => this.handleHelpClick()}
                         .onHistoryClick=${() => this.handleHistoryClick()}
