@@ -26,6 +26,7 @@ module.exports.formatSpeakerResults = formatSpeakerResults;
 // Audio capture variables
 let systemAudioProc = null;
 let messageBuffer = '';
+let audioCaptureEnabled = true;
 
 // Reconnection tracking variables
 let reconnectionAttempts = 0;
@@ -503,8 +504,21 @@ function stopMacOSAudioCapture() {
     }
 }
 
+function isAudioCaptureAllowed(geminiSessionRef) {
+    if (!audioCaptureEnabled) {
+        return false;
+    }
+
+    const session = geminiSessionRef.current;
+    if (!session) {
+        return false;
+    }
+
+    return !(session.isClosed || session.closed);
+}
+
 async function sendAudioToGemini(base64Data, geminiSessionRef) {
-    if (!geminiSessionRef.current) return;
+    if (!isAudioCaptureAllowed(geminiSessionRef)) return;
 
     try {
         process.stdout.write('.');
@@ -523,6 +537,11 @@ function setupGeminiIpcHandlers(geminiSessionRef) {
     // Store the geminiSessionRef globally for reconnection access
     global.geminiSessionRef = geminiSessionRef;
 
+    ipcMain.on('set-audio-capture-enabled', (event, enabled) => {
+        audioCaptureEnabled = !!enabled;
+        console.log('Audio capture state updated:', audioCaptureEnabled);
+    });
+
     ipcMain.handle('initialize-gemini', async (event, apiKey, customPrompt, profile = 'interview', language = 'en-US') => {
         const session = await initializeGeminiSession(apiKey, customPrompt, profile, language);
         if (session) {
@@ -533,7 +552,7 @@ function setupGeminiIpcHandlers(geminiSessionRef) {
     });
 
     ipcMain.handle('send-audio-content', async (event, { data, mimeType }) => {
-        if (!geminiSessionRef.current) return { success: false, error: 'No active Gemini session' };
+        if (!isAudioCaptureAllowed(geminiSessionRef)) return { success: true, skipped: true };
         try {
             process.stdout.write('.');
             await geminiSessionRef.current.sendRealtimeInput({
@@ -548,7 +567,7 @@ function setupGeminiIpcHandlers(geminiSessionRef) {
 
     // Handle microphone audio on a separate channel
     ipcMain.handle('send-mic-audio-content', async (event, { data, mimeType }) => {
-        if (!geminiSessionRef.current) return { success: false, error: 'No active Gemini session' };
+        if (!isAudioCaptureAllowed(geminiSessionRef)) return { success: true, skipped: true };
         try {
             process.stdout.write(',');
             await geminiSessionRef.current.sendRealtimeInput({

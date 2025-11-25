@@ -22,6 +22,7 @@ let audioContext = null;
 let audioProcessor = null;
 let micAudioProcessor = null;
 let audioBuffer = [];
+let audioCaptureEnabled = localStorage.getItem('audioCaptureEnabled') !== 'false';
 const SAMPLE_RATE = 24000;
 const AUDIO_CHUNK_DURATION = 0.1; // seconds
 const BUFFER_SIZE = 4096; // Increased buffer size for smoother audio
@@ -137,6 +138,33 @@ function convertFloat32ToInt16(float32Array) {
         int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
     }
     return int16Array;
+}
+
+function setAudioCaptureEnabled(enabled) {
+    audioCaptureEnabled = enabled;
+    localStorage.setItem('audioCaptureEnabled', enabled ? 'true' : 'false');
+
+    if (cheatingDaddyApp) {
+        cheatingDaddyApp.audioCaptureEnabled = enabled;
+        if (cheatingDaddyApp.requestUpdate) {
+            cheatingDaddyApp.requestUpdate();
+        }
+    }
+
+    try {
+        ipcRenderer.send('set-audio-capture-enabled', enabled);
+    } catch (error) {
+        console.warn('Unable to sync audio capture state to main process:', error);
+    }
+}
+
+function toggleAudioCaptureEnabled() {
+    setAudioCaptureEnabled(!audioCaptureEnabled);
+    console.log(`Audio capture ${audioCaptureEnabled ? 'enabled' : 'disabled'} via shortcut`);
+}
+
+function isAudioCaptureEnabled() {
+    return audioCaptureEnabled;
 }
 
 function arrayBufferToBase64(buffer) {
@@ -365,6 +393,11 @@ function setupLinuxMicProcessing(micStream) {
     const samplesPerChunk = SAMPLE_RATE * AUDIO_CHUNK_DURATION;
 
     micProcessor.onaudioprocess = async e => {
+        if (!isAudioCaptureEnabled()) {
+            audioBuffer = [];
+            return;
+        }
+
         const inputData = e.inputBuffer.getChannelData(0);
         audioBuffer.push(...inputData);
 
@@ -398,6 +431,11 @@ function setupLinuxSystemAudioProcessing() {
     const samplesPerChunk = SAMPLE_RATE * AUDIO_CHUNK_DURATION;
 
     audioProcessor.onaudioprocess = async e => {
+        if (!isAudioCaptureEnabled()) {
+            audioBuffer = [];
+            return;
+        }
+
         const inputData = e.inputBuffer.getChannelData(0);
         audioBuffer.push(...inputData);
 
@@ -428,6 +466,11 @@ function setupWindowsLoopbackProcessing() {
     const samplesPerChunk = SAMPLE_RATE * AUDIO_CHUNK_DURATION;
 
     audioProcessor.onaudioprocess = async e => {
+        if (!isAudioCaptureEnabled()) {
+            audioBuffer = [];
+            return;
+        }
+
         const inputData = e.inputBuffer.getChannelData(0);
         audioBuffer.push(...inputData);
 
@@ -743,6 +786,10 @@ function handleShortcut(shortcutKey) {
             captureManualScreenshot();
         }
     }
+
+    if (shortcutKey === 'ctrl+a' || shortcutKey === 'cmd+a') {
+        toggleAudioCaptureEnabled();
+    }
 }
 
 // Create reference to the main app element
@@ -768,6 +815,9 @@ const cheddar = {
     stopCapture,
     sendTextMessage,
     handleShortcut,
+    toggleAudioCaptureEnabled,
+    setAudioCaptureEnabled,
+    isAudioCaptureEnabled,
 
     // Conversation history functions
     getAllConversationSessions,
@@ -787,3 +837,15 @@ const cheddar = {
 
 // Make it globally available
 window.cheddar = cheddar;
+
+// Sync initial audio capture state to UI and main process
+setAudioCaptureEnabled(audioCaptureEnabled);
+
+// Global keyboard handler for audio capture toggle
+window.addEventListener('keydown', event => {
+    const key = event.key?.toLowerCase();
+    if ((event.ctrlKey || event.metaKey) && key === 'a') {
+        const shortcutKey = event.metaKey ? 'cmd+a' : 'ctrl+a';
+        handleShortcut(shortcutKey);
+    }
+});

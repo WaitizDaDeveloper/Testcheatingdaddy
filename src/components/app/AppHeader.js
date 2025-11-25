@@ -86,6 +86,27 @@ export class AppHeader extends LitElement {
             font-size: 12px;
             margin: 0px;
         }
+
+        .audio-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: var(--header-font-size-small);
+            background: var(--hover-background);
+            font-weight: 600;
+        }
+
+        .audio-indicator.on {
+            color: #0c6b2d;
+            background: rgba(12, 107, 45, 0.08);
+        }
+
+        .audio-indicator.off {
+            color: #8c1d1d;
+            background: rgba(140, 29, 29, 0.08);
+        }
     `;
 
     static properties = {
@@ -101,6 +122,7 @@ export class AppHeader extends LitElement {
         isClickThrough: { type: Boolean, reflect: true },
         advancedMode: { type: Boolean },
         onAdvancedClick: { type: Function },
+        audioCaptureEnabled: { type: Boolean },
     };
 
     constructor() {
@@ -117,6 +139,7 @@ export class AppHeader extends LitElement {
         this.isClickThrough = false;
         this.advancedMode = false;
         this.onAdvancedClick = () => {};
+        this.audioCaptureEnabled = true;
         this._timerInterval = null;
     }
 
@@ -209,6 +232,9 @@ export class AppHeader extends LitElement {
                         ? html`
                               <span>${elapsedTime}</span>
                               <span>${this.statusText}</span>
+                              <span class="audio-indicator ${this.audioCaptureEnabled ? 'on' : 'off'}">
+                                  ${this.audioCaptureEnabled ? 'Audio On' : 'Audio Off'}
+                              </span>
                           `
                         : ''}
                     ${this.currentView === 'main'

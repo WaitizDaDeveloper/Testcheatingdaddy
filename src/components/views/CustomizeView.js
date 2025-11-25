@@ -582,6 +582,7 @@ export class CustomizeView extends LitElement {
             moveRight: isMac ? 'Alt+Right' : 'Ctrl+Right',
             toggleVisibility: isMac ? 'Cmd+\\' : 'Ctrl+\\',
             toggleClickThrough: isMac ? 'Cmd+M' : 'Ctrl+M',
+            toggleAudioCapture: isMac ? 'Cmd+A' : 'Ctrl+A',
             nextStep: isMac ? 'Cmd+Enter' : 'Ctrl+Enter',
             previousResponse: isMac ? 'Cmd+[' : 'Ctrl+[',
             nextResponse: isMac ? 'Cmd+]' : 'Ctrl+]',
@@ -658,6 +659,11 @@ export class CustomizeView extends LitElement {
                 key: 'toggleClickThrough',
                 name: 'Toggle Click-through Mode',
                 description: 'Enable/disable click-through functionality',
+            },
+            {
+                key: 'toggleAudioCapture',
+                name: 'Toggle Audio Capture',
+                description: 'Enable or pause microphone/system audio streaming',
             },
             {
                 key: 'nextStep',

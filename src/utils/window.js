@@ -148,6 +148,7 @@ function getDefaultKeybinds() {
         moveRight: isMac ? 'Alt+Right' : 'Ctrl+Right',
         toggleVisibility: isMac ? 'Cmd+\\' : 'Ctrl+\\',
         toggleClickThrough: isMac ? 'Cmd+M' : 'Ctrl+M',
+        toggleAudioCapture: isMac ? 'Cmd+A' : 'Ctrl+A',
         nextStep: isMac ? 'Cmd+Enter' : 'Ctrl+Enter',
         previousResponse: isMac ? 'Cmd+[' : 'Ctrl+[',
         nextResponse: isMac ? 'Cmd+]' : 'Ctrl+]',
@@ -237,6 +238,23 @@ function updateGlobalShortcuts(keybinds, mainWindow, sendToRenderer, geminiSessi
             console.log(`Registered toggleClickThrough: ${keybinds.toggleClickThrough}`);
         } catch (error) {
             console.error(`Failed to register toggleClickThrough (${keybinds.toggleClickThrough}):`, error);
+        }
+    }
+
+    // Register toggle audio capture shortcut
+    if (keybinds.toggleAudioCapture) {
+        try {
+            globalShortcut.register(keybinds.toggleAudioCapture, () => {
+                const isMac = process.platform === 'darwin';
+                const shortcutKey = isMac ? 'cmd+a' : 'ctrl+a';
+
+                mainWindow.webContents.executeJavaScript(`
+                    cheddar.handleShortcut('${shortcutKey}');
+                `);
+            });
+            console.log(`Registered toggleAudioCapture: ${keybinds.toggleAudioCapture}`);
+        } catch (error) {
+            console.error(`Failed to register toggleAudioCapture (${keybinds.toggleAudioCapture}):`, error);
         }
     }
 
